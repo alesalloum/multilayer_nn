@@ -1,4 +1,5 @@
 import argparse
+import gzip
 import torch
 
 from transformers import AutoModel
@@ -73,7 +74,7 @@ def add_layernorm_gamma_self_edges(
 
 def add_H_to_QKV_connections(
     edges,
-    W_out_in,  # nn.Linear.weight (shape [out, in])
+    W_out_in,  # nn.Linear.weight (shape [out, in]), transpose required...
     num_heads: int,
     src_prefix: str,
     block_prefix: str,
@@ -163,7 +164,7 @@ def add_block_edges(edges, model, block_layer_idx, src_prefix):
 
     before = len(edges)
 
-    # ATTENTION STAGE: H(k)_src -> Q/K/V (terminate here)
+    # ATTENTION STAGE: H(k)_src -> Q/K/V (chain terminates here)
     add_H_to_QKV_connections(
         edges, layer.attention.self.query.weight, num_heads, src_prefix, block_tag, "Q"
     )
@@ -218,6 +219,12 @@ def save_edges_to_txt(edges, filename):
             f.write(f"{src}\t{dst}\t{weight}\n")
 
 
+def save_edges_to_txt_gz(edges, filename):
+    with gzip.open(filename, "wt", compresslevel=6) as f:
+        for u, v, w in edges:
+            f.write(f"{u}\t{v}\t{w}\n")
+
+
 def main(model_name: str):
 
     # Load the model
@@ -239,7 +246,7 @@ def main(model_name: str):
         edges, model.embeddings.LayerNorm.weight, "H0"
     )  # [H]
 
-    # Intermediate check
+    # Intermediate check (remove later)
     print("Edges after embeddings:", len(edges))
     H_dim = model_info["hidden_size"]
     V_dim = model_info["vocab_size"]
@@ -278,6 +285,9 @@ def main(model_name: str):
     # Save edges
     if SAVE_MODE:
         save_edges_to_txt(edges, filename=model_name.replace("/", "_") + "_edges.txt")
+        
+        # you might want to gzip for huge nets
+        #save_edges_to_txt_gz(edges, filename=model_name.replace("/", "_") + "_edges.txt.gz")
 
 
 if __name__ == "__main__":
