@@ -285,9 +285,9 @@ def main(model_name: str):
     # Save edges
     if SAVE_MODE:
         save_edges_to_txt(edges, filename=model_name.replace("/", "_") + "_edges.txt")
-        
+
         # you might want to gzip for huge nets
-        #save_edges_to_txt_gz(edges, filename=model_name.replace("/", "_") + "_edges.txt.gz")
+        # save_edges_to_txt_gz(edges, filename=model_name.replace("/", "_") + "_edges.txt.gz")
 
 
 if __name__ == "__main__":
